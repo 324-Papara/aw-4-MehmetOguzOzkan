@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Para.Api.Middleware;
+using Para.Api.Model;
 using Para.Api.Service;
 using Para.Base;
 using Para.Base.Log;
@@ -137,7 +138,12 @@ public class Startup
             .UseRecommendedSerializerSettings()
             .UseSqlServerStorage(Configuration.GetConnectionString("HangfireConnection")));
         services.AddHangfireServer();
-        
+
+        services.Configure<RabbitMQConfig>(Configuration.GetSection("RabbitMQConfig"));
+        services.AddSingleton<IEmailSender, SmtpEmailSender>();
+        services.AddSingleton<IRabbitMQClient, RabbitMQClient>();
+        services.AddHostedService<EmailQueueListener>();
+
 
         services.AddScoped<ISessionContext>(provider =>
         {
@@ -161,15 +167,15 @@ public class Startup
 
         app.UseMiddleware<HeartbeatMiddleware>();
         app.UseMiddleware<ErrorHandlerMiddleware>();
-        Action<RequestProfilerModel> requestResponseHandler = requestProfilerModel =>
-        {
-            Log.Information("-------------Request-Begin------------");
-            Log.Information(requestProfilerModel.Request);
-            Log.Information(Environment.NewLine);
-            Log.Information(requestProfilerModel.Response);
-            Log.Information("-------------Request-End------------");
-        };
-        app.UseMiddleware<RequestLoggingMiddleware>(requestResponseHandler);
+        //Action<RequestProfilerModel> requestResponseHandler = requestProfilerModel =>
+        //{
+        //    Log.Information("-------------Request-Begin------------");
+        //    Log.Information(requestProfilerModel.Request);
+        //    Log.Information(Environment.NewLine);
+        //    Log.Information(requestProfilerModel.Response);
+        //    Log.Information("-------------Request-End------------");
+        //};
+        //app.UseMiddleware<RequestLoggingMiddleware>(requestResponseHandler);
 
         app.UseHangfireDashboard();
 
